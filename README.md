@@ -89,6 +89,28 @@ User Query → Router Agent → [Flight Agent, Hotel Agent] (Parallel) → Itine
 5. View your personalized travel plan in the boarding pass format
 6. Download as Markdown or PDF for offline use
 
+## Testing
+
+Run the test suite with pytest:
+
+```bash
+# Install test dependencies (if not already in requirements)
+pip install pytest pytest-cov
+
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=./ --cov-report=html
+```
+
+To run specific test modules:
+
+```bash
+pytest tests/test_integration.py
+pytest tests/test_router_agent.py
+```
+
 ## Deployment
 
 ### Streamlit Community Cloud (Recommended for Demo)
