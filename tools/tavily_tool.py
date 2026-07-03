@@ -1,11 +1,16 @@
 # tavily_tool.py
 import os
+import logging
 from dotenv import load_dotenv
 from tavily import TavilyClient
 
 load_dotenv()
 
 _client = None
+
+# Set up logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 def get_client():
     global _client
@@ -22,6 +27,7 @@ def tavily_search(query: str) -> str:
     """
     try:
         client = get_client()
+        logger.info(f"Executing Tavily search for query: {query}")
         response = client.search(
             query=query,
             max_results=5
@@ -34,10 +40,13 @@ def tavily_search(query: str) -> str:
             if len(snippet) > 300:
                 snippet = snippet[:300].rsplit(" ", 1)[0] + "..."
             results.append(f"{i}. **{title}**\n   {url}\n   {snippet}")
-        
+
         if not results:
+            logger.warning("Tavily search returned no results")
             return "No matching search results found."
-            
+
+        logger.info(f"Tavily search returned {len(results)} results")
         return "\n\n".join(results)
     except Exception as e:
+        logger.error(f"Error during Tavily search: {e}")
         return f"Search service unavailable: {str(e)}"

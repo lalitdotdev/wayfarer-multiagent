@@ -1,7 +1,7 @@
 # flight_tool.py
 import os
-import requests
 import logging
+import requests
 from dotenv import load_dotenv
 from tools.tavily_tool import tavily_search
 
@@ -31,7 +31,7 @@ def search_flights(query: str, dep_iata: str = None, arr_iata: str = None) -> st
             if arr_iata:
                 params["arr_iata"] = arr_iata
 
-            logger.info(f"Attempting AviationStack API call with params: {params}")
+            logger.info(f"Calling AviationStack API with params: {params}")
             response = requests.get(url, params=params, timeout=8)
             if response.status_code == 200:
                 data = response.json()
@@ -47,7 +47,7 @@ def search_flights(query: str, dep_iata: str = None, arr_iata: str = None) -> st
                         flights.append(
                             f"Airline: {airline} | Departure: {departure} | Arrival: {arrival} | Status: {status} | Date: {flight_date}"
                         )
-                    logger.info("Successfully retrieved flight data from AviationStack")
+                    logger.info(f"AviationStack API returned {len(flights)} flights")
                     return "\n".join(flights)
                 else:
                     logger.warning("AviationStack API returned no flight data")
@@ -56,19 +56,17 @@ def search_flights(query: str, dep_iata: str = None, arr_iata: str = None) -> st
         except Exception as e:
             logger.error(f"Error calling AviationStack API: {e}")
             # Fall through to Tavily if API fails
-            pass
 
     # 2. Fallback: Search using Tavily for real-time web results
     search_query = f"flights options routes flights from {dep_iata or ''} to {arr_iata or ''} {query}".strip()
+    logger.info(f"Falling back to Tavily search with query: {search_query}")
     try:
-        logger.info(f"Falling back to Tavily search with query: {search_query}")
         tavily_results = tavily_search(search_query)
         if tavily_results:
-            logger.info("Successfully retrieved flight data from Tavily")
+            logger.info("Tavily search returned results")
             return tavily_results
     except Exception as e:
-        logger.error(f"Error calling Tavily search: {e}")
-        pass
+        logger.error(f"Error during Tavily search fallback: {e}")
 
-    logger.error("All flight search methods failed")
+    logger.warning("All flight search methods failed")
     return "No live flight data retrieved. Please verify the destination and departure cities."
