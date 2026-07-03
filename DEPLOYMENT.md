@@ -128,3 +128,116 @@ To update the application:
 2. Update dependencies: `pip install -r requirements.txt`
 3. Restart the application
 4. Check for any breaking changes in dependencies
+## 5. Kubernetes Deployment
+
+For production Kubernetes deployments, see the `kubernetes/` directory (to be created) which will contain:
+
+### Deployment Manifest
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wayfarer
+  labels:
+    app: wayfarer
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wayfarer
+  template:
+    metadata:
+      labels:
+        app: wayfarer
+    spec:
+      containers:
+      - name: wayfarer
+        image: wayfarer:latest
+        ports:
+        - containerPort: 8501
+        env:
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: wayfarer-secrets
+              key: groq-api-key
+        - name: AVIATIONSTACK_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: wayfarer-secrets
+              key: aviationstack-api-key
+        - name: TAVILY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: wayfarer-secrets
+              key: tavily-api-key
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: wayfarer-secrets
+              key: database-url
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /_stcore/health
+            port: 8501
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wayfarer-service
+spec:
+  selector:
+    app: wayfarer
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8501
+  type: LoadBalancer
+```
+
+### Secrets Management
+Create secrets using:
+```bash
+kubectl create secret generic wayfarer-secrets \
+  --from-literal=groq-api-key=$GROQ_API_KEY \
+  --from-literal=aviationstack-api-key=$AVIATIONSTACK_API_KEY \
+  --from-literal=tavily-api-key=$TAVILY_API_KEY \
+  --from-literal=database-url=$DATABASE_URL
+```
+
+### Horizontal Pod Autoscaler
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: wayfarer-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: wayfarer
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+```
