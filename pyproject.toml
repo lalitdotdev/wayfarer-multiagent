@@ -1,0 +1,14 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--strict-markers",
+    "--disable-warnings",
+]
+markers = [
+    "unit: marks unit tests",
+    "integration: marks integration tests",
+    "api: marks API-related tests",
+]
