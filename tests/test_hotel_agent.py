@@ -44,7 +44,5 @@ def test_hotel_agent_uses_default_query_when_none_provided(mock_tavily_search):
     }
     result = hotel_agent(state)
 
-    agent(state)
-
     # Should call tavily_search with default query: "best hotels in Paris"
     mock_tavily_search.assert_called_once_with("best hotels in Paris")
