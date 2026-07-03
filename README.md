@@ -4,22 +4,26 @@
 Wayfarer is an intelligent multi-agent travel planning system that uses LangGraph to coordinate specialized agents for flights, hotels, itineraries, and final travel plan synthesis. The system provides a beautiful Streamlit interface for users to plan their trips with AI-powered recommendations.
 
 ## Features
+
 - **Multi-Agent Architecture**: Specialized agents for flight search, hotel search, itinerary creation, and final plan synthesis
-- **Real-time Streaming**: Watch agents work in parallel with live updates
-- **Beautiful UI**: Custom Streamlit interface with animations and visual feedback
-- **Memory Persistence**: PostgreSQL-backed checkpointing for conversation history
-- **Export Options**: Generate and download travel plans as Markdown or PDF
-- **Multi-LLM Support**: Powered by Groq's LLaMA 3.3 70B model
+- **Real-time Streaming**: Watch agents work in parallel with live updates in the Streamlit interface
+- **Beautiful UI**: Custom Streamlit interface with animations, visual feedback, and boarding pass-style results
+- **Memory Persistence**: PostgreSQL-backed checkpointing for conversation history and session persistence
+- **Export Options**: Generate and download travel plans as Markdown or PDF files
+- **Multi-LLM Support**: Powered by Groq's LLaMA 3.3 70B model for fast, high-quality responses
 - **External APIs**: Integrated with Tavily for search and AviationStack for flight data
+- **Extensible Design**: Modular architecture makes it easy to add new agents or capabilities
 
 ## Architecture
+
 ```
 User Query → Router Agent → [Flight Agent, Hotel Agent] (Parallel) → Itinerary Agent → Final Agent → User Response
-                                                        ↑
+                                                       ↑
                                                 Planner Agent ← Chitchat Agent
 ```
 
-## Agents
+### Agents
+
 1. **Router Agent**: Determines if query is travel-related or chitchat
 2. **Planner Agent**: Extracts travel details (destination, dates, etc.) from user query
 3. **Flight Agent**: Searches for flight options using AviationStack API
@@ -29,49 +33,104 @@ User Query → Router Agent → [Flight Agent, Hotel Agent] (Parallel) → Itine
 7. **Chitchat Agent**: Handles general conversation and guides back to travel planning
 
 ## Technology Stack
+
 - **Framework**: LangGraph for stateful multi-agent workflows
-- **LLM**: Groq (LLaMA 3.3 70B)
-- **Frontend**: Streamlit
-- **Search**: Tavily API
-- **Flight Data**: AviationStack API
+- **LLM**: Groq (LLaMA 3.3 70B) for fast inference
+- **Frontend**: Streamlit for interactive web interface
+- **Search**: Tavily API for hotel and travel information search
+- **Flight Data**: AviationStack API for real-time flight information
 - **Database**: PostgreSQL with PostgresSaver for checkpointing
-- **PDF Generation**: ReportLab
+- **PDF Generation**: ReportLab for travel plan exports
 - **Environment**: Python 3.8+
 
 ## Installation
-1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Set up environment variables in `.env`:
-   - `GROQ_API_KEY`: For LLM access
-   - `AVIATIONSTACK_API_KEY`: For flight data
-   - `TAVILY_API_KEY`: For hotel/search data
-   - `DATABASE_URL`: PostgreSQL connection string
-4. Run the application: `streamlit run app.py`
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/wayfarer.git
+   cd wayfarer
+   ```
+
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   # Windows
+   venv\Scripts\activate
+   # macOS/Linux
+   source venv/bin/activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your API keys:
+   GROQ_API_KEY="your_groq_api_key_here"
+   AVIATIONSTACK_API_KEY="your_aviationstack_api_key_here"
+   TAVILY_API_KEY="your_tavily_api_key_here"
+   DATABASE_URL="postgresql://user:password@host:5432/database_name"
+   ```
+
+5. Run the application:
+   ```bash
+   streamlit run app.py
+   ```
 
 ## Usage
+
 1. Enter your Passenger ID (optional, for conversation memory)
 2. Describe your trip in the text area (e.g., "Plan a 7-day Japan trip under ₹2 lakhs")
 3. Click "Generate My Travel Plan"
-4. Watch the agents work in real-time
+4. Watch the agents work in real-time with visual feedback
 5. View your personalized travel plan in the boarding pass format
 6. Download as Markdown or PDF for offline use
 
 ## Deployment
-The application can be deployed to any platform that supports Streamlit and Python:
-- Streamlit Community Cloud
-- Docker containers
-- Traditional VPS/cloud servers
-- Platform-as-a-service (Heroku, Render, etc.)
 
-## Environment Variables
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GROQ_API_KEY` | API key for Groq LLM | Yes |
-| `AVIATIONSTACK_API_KEY` | API key for AviationStack flight data | Yes |
-| `TAVILY_API_KEY` | API key for Tavily search | Yes |
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
+### Streamlit Community Cloud (Recommended for Demo)
+
+1. Fork the repository on GitHub
+2. Sign in to [Streamlit Community Cloud](https://streamlit.io/cloud)
+3. Click "New app"
+4. Select your repository
+5. Set main file path: `app.py`
+6. Add environment variables in secrets:
+   ```toml
+   [secrets]
+   GROQ_API_KEY = "your_key_here"
+   AVIATIONSTACK_API_KEY = "your_key_here"
+   TAVILY_API_KEY = "your_key_here"
+   DATABASE_URL = "your_postgres_url_here"
+   ```
+7. Click "Deploy"
+
+### Docker Deployment
+
+```bash
+# Build the image
+docker build -t wayfarer .
+
+# Run the container
+docker run -p 8501:8501 \
+  -e GROQ_API_KEY=$GROQ_API_KEY \
+  -e AVIATIONSTACK_API_KEY=$AVIATIONSTACK_API_KEY \
+  -e TAVILY_API_KEY=$TAVILY_API_KEY \
+  -e DATABASE_URL=$DATABASE_URL \
+  wayfarer
+```
+
+### Traditional Server/VPS
+
+1. Install dependencies: `pip install -r requirements.txt`
+2. Set environment variables (see above)
+3. Run: `streamlit run app.py --server.port=8501 --server.address=0.0.0.0`
 
 ## Project Structure
+
 ```
 .
 ├── app.py              # Streamlit frontend
@@ -90,18 +149,32 @@ The application can be deployed to any platform that supports Streamlit and Pyth
 └── scratch/            # Temporary files
 ```
 
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `GROQ_API_KEY` | API key for Groq LLM | Yes |
+| `AVIATIONSTACK_API_KEY` | API key for AviationStack flight data | Yes |
+| `TAVILY_API_KEY` | API key for Tavily search | Yes |
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+
+## API Documentation
+
+See [API_DOCS.md](API_DOCS.md) for detailed API documentation of the internal modules.
+
 ## Contributing
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Open a pull request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed contribution guidelines on how to contribute to Wayfarer.
 
 ## License
+
 MIT License - feel free to use and modify for personal or commercial projects.
 
 ## Acknowledgments
+
 - LangGraph team for the excellent multi-agent framework
 - Groq for fast LLM inference
 - Streamlit for the beautiful frontend framework
 - Tavily and AviationStack for their travel APIs
+- ReportLab for PDF generation capabilities
+EOF
