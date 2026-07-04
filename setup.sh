@@ -1,6 +1,8 @@
 #!/bin/bash
 # Wayfarer Multi-Agent Travel Concierge Setup Script
 
+set -e  # Exit on any error
+
 echo "Setting up Wayfarer Multi-Agent Travel Concierge..."
 
 # Check if Python 3.8+ is available
@@ -76,7 +78,7 @@ echo "To activate the virtual environment in the future, run:"
 echo "  source venv/bin/activate"
 echo ""
 echo "To run the application:"
-echo "  wayfarer"
+echo "  streamlit run app.py"
 echo ""
 echo "To run tests:"
 echo "  pytest"
