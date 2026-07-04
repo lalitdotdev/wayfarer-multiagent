@@ -93,3 +93,5 @@ dmypy.json
 *.sqlite3
 *.db
 logs/
+
+wayfarer_guide.md

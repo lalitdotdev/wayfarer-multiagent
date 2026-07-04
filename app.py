@@ -28,6 +28,34 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+def check_password():
+    """Returns True if the user entered the correct password."""
+    target_pwd = os.getenv("DEMO_PASSWORD", "wayfarer_demo")
+    
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    if st.session_state["password_correct"]:
+        return True
+
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown("### 🔒 Wayfarer Demo Protection")
+        st.write("This live demo is password-protected to prevent API limit abuse. Please enter the password to proceed.")
+        pwd_input = st.text_input("Enter password to access the concierge", type="password")
+        
+        if st.button("Unlock", use_container_width=True):
+            if pwd_input == target_pwd:
+                st.session_state["password_correct"] = True
+                st.rerun()
+            else:
+                st.error("😕 Password incorrect.")
+    return False
+
+if not check_password():
+    st.stop()
+
 # ═══════════════════════════════════════════════════════════════════════════
 #  DESIGN TOKENS
 #  Route-map palette — every agent is a different "line" that converges
