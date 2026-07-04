@@ -242,28 +242,29 @@ def itinerary_agent(state: TravelState):
     """
     Synthesizes flights and hotels into a personalized, beautiful narrative itinerary.
     """
-    if state.get("destination", "unknown") == "unknown":
-        return {
-            "itinerary": "No travel destination specified.",
-            "messages": [AIMessage(content="[Itinerary Agent] Skipped itinerary generation.")]
-        }
+    try:
+        if state.get("destination", "unknown") == "unknown":
+            return {
+                "itinerary": "No travel destination specified.",
+                "messages": [AIMessage(content="[Itinerary Agent] Skipped itinerary generation.")]
+            }
 
-    prompt = f"""
-    Create a travel itinerary.
-    User Query: {state['user_query']}
-    Destination: {state['destination']}
-    Departure City: {state['departure_city']}
-    
-    Flight Options:
-    {state['flight_results']}
-    
-    Hotel Options:
-    {state['hotel_results']}
-    """
+        prompt = f"""
+        Create a travel itinerary.
+        User Query: {state['user_query']}
+        Destination: {state['destination']}
+        Departure City: {state['departure_city']}
 
-    response = llm.invoke([
-        SystemMessage(
-            content="""
+        Flight Options:
+        {state['flight_results']}
+
+        Hotel Options:
+        {state['hotel_results']}
+        """
+
+        response = llm.invoke([
+            SystemMessage(
+                content="""
 You are a world-class travel agent AI. Your mission is to design perfect, human-centric travel itineraries by synthesizing flight data, hotel suggestions, and the user’s core request.
 
 STYLE GUIDE FOR ITINERARY:
@@ -281,38 +282,31 @@ FORMATTING:
 - Use markdown for readability (bolding, short headings).
 - Keep paragraphs under 3–4 lines maximum.
 - Make the tone feel like a personalized recommendation from a friend who is an expert in travel.
-            """
-        ),
-        HumanMessage(content=prompt)
-    ])
+                """
+            ),
+            HumanMessage(content=prompt)
+        ])
 
-    return {
-        "itinerary": response.content,
-        "messages": [response],
-        "llm_calls": 1
-    }
+        return {
+            "itinerary": response.content,
+            "messages": [response],
+            "llm_calls": 1
+        }
+    except Exception as e:
+        logger.error(f"Error in itinerary_agent: {str(e)}")
+        return {
+            "itinerary": "Unable to generate itinerary at this time.",
+            "messages": [AIMessage(content="[Itinerary Agent] Unable to generate itinerary due to technical difficulties.")],
+            "llm_calls": 1
+        }
 
 def final_agent(state: TravelState):
     """
     Packages the generated itinerary and summaries into a friendly final user response.
     """
-    if not state.get("is_travel_related", True):
-        return {}
-
-    final_prompt = f"""
-    Synthesize a final response for the user's travel request.
-    
-    Proposed Itinerary:
-    {state['itinerary']}
-    
-    Provide the finalized response containing the itinerary, flight details, and hotel suggestions, wrapped beautifully.
-    """
-    response = llm.invoke([HumanMessage(content=final_prompt)])
-
-    return {
-        "messages": [response],
-        "llm_calls": 1
-    }
+    try:
+        if not state.get("is_travel_related", True):
+            return {} \n\n    final_prompt = f\"\"\"\n    Synthesizeify a y n t h n r e s p o n s e t h e u s e r ' s t r a v e l r q u e s t .\n\n    P r o p o s e d I t i n e r a r y :\n    \n    { s t a t e [ ' i t i n e r a r y ' ] }\n\n    P r o v i d e t h e f i n a l i z e d r e s p o n s e c o n t a i n i n g t h e i t i n e r a r y , f l i g h t d e t a i l s , a n d h o t e l s u g g e s t i o n s , w r a p p e d b e a u t i f u l l y .\n    \"\"\"\n    r e s p o n s e = l l m . i n v o k e ([ H u m a n M e s s a g e ( c o n t e n t = f i n a l _ p r o m p t )])\n\n    r e t u r n {\n        \" m e s s a g e s \" : [ r e s p o n s e ],\n        \" l l m _ c a l l s \" : 1\n    }\nexcept Exception as e:\n    logger.error(f`Error i n f i n a l _ a g e n t: { s t r ( e ) `})\n    r e t u r n {\n        \" m e s s a g e s \" : [ A I M e s s a g e ( c o n t e n t = \"[ F i n a l A g e n t ] U n a b l e t o g e n e r a t e f i n a l r e s p o n s e d u e t o t e c h n i c a l d i f f i c u l t i e s . \" )],\n        \" l l m _ c a l l s \" : 1\n    }
 
 # --- GRAPH BUILDER ---
 
