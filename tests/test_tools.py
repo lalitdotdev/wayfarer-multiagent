@@ -1,5 +1,5 @@
 """
-Tests for Wayfarer travel concierge tools
+Tests for Wayfarer travel concierge tools and utilities
 """
 
 import os
@@ -9,6 +9,7 @@ from unittest.mock import patch, MagicMock
 # Import the tools to test
 from tools.tavily_tool import tavily_search
 from tools.flight_tool import search_flights
+from utils import extract_iata_codes, format_currency, validate_date_range, extract_travel_duration
 
 
 def test_tavily_search_import():
@@ -99,6 +100,73 @@ def test_search_flights_no_api_key(mock_tavily_search):
         result = search_flights("test flight")
         assert result == "Tavily fallback results"
         mock_tavily_search.assert_called_once()
+
+
+# Utility function tests
+def test_extract_iata_codes():
+    """Test IATA code extraction from text"""
+    # Test with two codes
+    result = extract_iata_codes("Fly from JFK to LAX")
+    assert result.get('departure') == 'JFK'
+    assert result.get('arrival') == 'LAX'
+
+    # Test with one code (arrival)
+    result = extract_iata_codes("Going to NRT")
+    assert result.get('arrival') == 'NRT'
+    assert 'departure' not in result
+
+    # Test with one code (departure)
+    result = extract_iata_codes("Departing from SFO")
+    assert result.get('departure') == 'SFO'
+    assert 'arrival' not in result
+
+    # Test with no codes
+    result = extract_iata_codes("Going to Paris")
+    assert result == {}
+
+    # Test case insensitivity
+    result = extract_iata_codes("fly from jfk to lax")
+    assert result.get('departure') == 'JFK'
+    assert result.get('arrival') == 'LAX'
+
+
+def test_format_currency():
+    """Test currency formatting"""
+    # Test default currency (INR)
+    assert format_currency(1234.5) == "₹1,234.50"
+    assert format_currency(0) == "₹0.00"
+    assert format_currency(1000000) == "₹1,000,000.00"
+
+    # Test custom currency
+    assert format_currency(100, "$") == "$100.00"
+    assert format_currency(50.5, "€") == "€50.50"
+    assert format_currency(99.99, "£") == "£99.99"
+
+
+def test_validate_date_range():
+    """Test date range validation"""
+    # Valid dates
+    assert validate_date_range("2023-01-01", "2023-12-31") == True
+    assert validate_date_range("2023-06-15", "2023-06-15") == True  # Same day
+
+    # Invalid dates
+    assert validate_date_range("2023-12-31", "2023-01-01") == False  # End before start
+    assert validate_date_range("not-a-date", "2023-01-01") == False
+    assert validate_date_range("2023-01-01", "not-a-date") == False
+    assert validate_date_range("2023-13-01", "2023-01-01") == False  # Invalid month
+    assert validate_date_range("2023-01-32", "2023-01-01") == False  # Invalid day
+
+
+def test_extract_travel_duration():
+    """Test travel duration extraction"""
+    # Test various formats
+    assert extract_travel_duration("7-day trip to Paris") == 7
+    assert extract_travel_duration("10 day vacation") == 10
+    assert extract_travel_duration("Stay for 5 days") == 5
+    assert extract_travel_duration("3 days trip") == 3
+    assert extract_travel_duration("2-week tour") == 14  # 2 weeks = 14 days
+    assert extract_travel_duration("weekend getaway") == 7  # Default 1 week
+    assert extract_travel_duration("Just visiting") is None  # No duration
 
 
 if __name__ == "__main__":
