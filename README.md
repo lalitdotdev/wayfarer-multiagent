@@ -45,6 +45,22 @@ User Query → Router Agent → [Flight Agent, Hotel Agent] (Parallel) → Itine
 
 ## Installation
 
+### Option 1: Automated Setup (Recommended)
+For a quick and easy setup, use the provided setup script:
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/wayfarer.git
+cd wayfarer
+
+# Run the setup script (handles virtual environment, dependencies, and configuration)
+chmod +x setup.sh
+./setup.sh
+
+# Activate the environment (if not already activated)
+source venv/bin/activate
+```
+
+### Option 2: Manual Setup
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/wayfarer.git
@@ -79,6 +95,23 @@ User Query → Router Agent → [Flight Agent, Hotel Agent] (Parallel) → Itine
    ```bash
    streamlit run app.py
    ```
+
+## Quick Start (Using Docker)
+For the fastest way to try Wayfarer locally:
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/wayfarer.git
+cd wayfarer
+
+# Create a .env file with your API keys
+cp .env.example .env
+# Edit .env with your actual API keys
+
+# Build and run with Docker
+docker build -t wayfarer .
+docker run -p 8501:8501 --env-file .env wayfarer
+```
+Then open your browser to http://localhost:8501
 
 ## Usage
 
