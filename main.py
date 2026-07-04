@@ -75,26 +75,34 @@ def router_agent(state: TravelState):
     """
     Classify whether the latest user query is travel-related or general chit-chat.
     """
-    user_query = state["user_query"]
-    prompt = f"""
-    You are an intent classifier for a Travel Booking assistant.
-    Analyze the user's latest query and decide if they are asking for travel suggestions, flight info, hotel info, itineraries, or modifying an existing travel plan.
-    
-    User Query: {user_query}
-    
-    Respond with 'TRAVEL' if it's travel-related (flights, hotels, destinations, itinerary planning).
-    Respond with 'OTHER' if it is general chit-chat, a greeting, a test, code, math, or anything else unrelated to planning a trip.
-    
-    Return ONLY 'TRAVEL' or 'OTHER'. Do not include any other text or explanation.
-    """
-    response = llm.invoke([HumanMessage(content=prompt)])
-    content = response.content.strip().upper()
-    is_travel = "TRAVEL" in content
+    try:
+        user_query = state["user_query"]
+        prompt = f"""
+        You are an intent classifier for a Travel Booking assistant.
+        Analyze the user's latest query and decide if they are asking for travel suggestions, flight info, hotel info, itineraries, or modifying an existing travel plan.
 
-    return {
-        "is_travel_related": is_travel,
-        "llm_calls": 1
-    }
+        User Query: {user_query}
+
+        Respond with 'TRAVEL' if it's travel-related (flights, hotels, destinations, itinerary planning).
+        Respond with 'OTHER' if it is general chit-chat, a greeting, a test, code, math, or anything else unrelated to planning a trip.
+
+        Return ONLY 'TRAVEL' or 'OTHER'. Do not include any other text or explanation.
+        """
+        response = llm.invoke([HumanMessage(content=prompt)])
+        content = response.content.strip().upper()
+        is_travel = "TRAVEL" in content
+
+        return {
+            "is_travel_related": is_travel,
+            "llm_calls": 1
+        }
+    except Exception as e:
+        logger.error(f"Error in router_agent: {str(e)}")
+        # Default to travel-related on error to avoid breaking the flow
+        return {
+            "is_travel_related": True,
+            "llm_calls": 1
+        }
 
 def route_intent(state: TravelState):
     """
@@ -109,73 +117,93 @@ def chitchat_agent(state: TravelState):
     Handles greetings, conversational chit-chat, or general assistance,
     while gently steering the user back to travel booking.
     """
-    user_query = state["user_query"]
-    response = llm.invoke([
-        SystemMessage(content=(
-            "You are Wayfarer's helpful assistant. You handle greetings and general chit-chat warmly, "
-            "but always politely guide the user back to asking about travel booking, flights, hotels, "
-            "or itineraries since that is your specialty."
-        )),
-        HumanMessage(content=user_query)
-    ])
-    return {
-        "messages": [response],
-        "llm_calls": 1
-    }
+    try:
+        user_query = state["user_query"]
+        response = llm.invoke([
+            SystemMessage(content=(
+                "You are Wayfarer's helpful assistant. You handle greetings and general chit-chat warmly, "
+                "but always politely guide the user back to asking about travel booking, flights, hotels, "
+                "or itineraries since that is your specialty."
+            )),
+            HumanMessage(content=user_query)
+        ])
+        return {
+            "messages": [response],
+            "llm_calls": 1
+        }
+    except Exception as e:
+        logger.error(f"Error in chitchat_agent: {str(e)}")
+        return {
+            "messages": [AIMessage(content="Hello! I'm Wayfarer, your travel companion. How can I help you with your travel plans today?")],
+            "llm_calls": 1
+        }
 
 def planner_agent(state: TravelState):
     """
     Extracts structured query parameters and airport codes from the user query and chat history.
     """
-    user_query = state["user_query"]
-    messages = state["messages"]
-
-    history_str = ""
-    for m in messages[:-1]:
-        role = "User" if isinstance(m, HumanMessage) else "Assistant"
-        history_str += f"{role}: {m.content}\n"
-
-    prompt = f"""
-    You are a travel details extractor. Analyze the current query and conversational history to produce a clean JSON object containing travel details.
-    
-    Current User Query: {user_query}
-    
-    Conversation History:
-    {history_str}
-    
-    Produce a JSON object with exactly the following fields:
-    - destination: Destination city/country name (string, or null if unknown)
-    - departure_city: Starting city/airport name (string, or null if unknown)
-    - dep_iata: 3-letter IATA airport code for departure (string, or null if unknown)
-    - arr_iata: 3-letter IATA airport code for destination (string, or null if unknown)
-    - flight_search_query: Search query for flights (string)
-    - hotel_search_query: Search query for hotels (string)
-    
-    Return ONLY valid JSON. Do not include markdown code block wrappers (like ```json) or any explanations.
-    """
-    response = llm.invoke([HumanMessage(content=prompt)])
-    content = response.content.strip()
-
-    # Strip markdown block wrappers if present
-    if content.startswith("```"):
-        content = re.sub(r"^```[a-zA-Z]*\n", "", content)
-        content = re.sub(r"\n```$", "", content)
-    content = content.strip()
-
     try:
-        data = json.loads(content)
-    except Exception:
-        data = {}
+        user_query = state["user_query"]
+        messages = state["messages"]
 
-    return {
-        "destination": data.get("destination") or state.get("destination") or "unknown",
-        "departure_city": data.get("departure_city") or state.get("departure_city") or "unknown",
-        "dep_iata": data.get("dep_iata") or state.get("dep_iata") or "unknown",
-        "arr_iata": data.get("arr_iata") or state.get("arr_iata") or "unknown",
-        "flight_search_query": data.get("flight_search_query") or user_query,
-        "hotel_search_query": data.get("hotel_search_query") or f"best hotels in {data.get('destination', user_query)}",
-        "llm_calls": 1
-    }
+        history_str = ""
+        for m in messages[:-1]:
+            role = "User" if isinstance(m, HumanMessage) else "Assistant"
+            history_str += f"{role}: {m.content}\n"
+
+        prompt = f"""
+        You are a travel details extractor. Analyze the current query and conversational history to produce a clean JSON object containing travel details.
+
+        Current User Query: {user_query}
+
+        Conversation History:
+        {history_str}
+
+        Produce a JSON object with exactly the following fields:
+        - destination: Destination city/country name (string, or null if unknown)
+        - departure_city: Starting city/airport name (string, or null if unknown)
+        - dep_iata: 3-letter IATA airport code for departure (string, or null if unknown)
+        - arr_iata: 3-letter IATA airport code for destination (string, or null if unknown)
+        - flight_search_query: Search query for flights (string)
+        - hotel_search_query: Search query for hotels (string)
+
+        Return ONLY valid JSON. Do not include markdown code block wrappers (like ```json) or any explanations.
+        """
+        response = llm.invoke([HumanMessage(content=prompt)])
+        content = response.content.strip()
+
+        # Strip markdown block wrappers if present
+        if content.startswith("```"):
+            content = re.sub(r"^```[a-zA-Z]*\n", "", content)
+            content = re.sub(r"\n```$", "", content)
+        content = content.strip()
+
+        try:
+            data = json.loads(content)
+        except Exception:
+            data = {}
+
+        return {
+            "destination": data.get("destination") or state.get("destination") or "unknown",
+            "departure_city": data.get("departure_city") or state.get("departure_city") or "unknown",
+            "dep_iata": data.get("dep_iata") or state.get("dep_iata") or "unknown",
+            "arr_iata": data.get("arr_iata") or state.get("arr_iata") or "unknown",
+            "flight_search_query": data.get("flight_search_query") or user_query,
+            "hotel_search_query": data.get("hotel_search_query") or f"best hotels in {data.get('destination', user_query)}",
+            "llm_calls": 1
+        }
+    except Exception as e:
+        logger.error(f"Error in planner_agent: {str(e)}")
+        # Return safe defaults on error
+        return {
+            "destination": state.get("destination") or "unknown",
+            "departure_city": state.get("departure_city") or "unknown",
+            "dep_iata": state.get("dep_iata") or "unknown",
+            "arr_iata": state.get("arr_iata") or "unknown",
+            "flight_search_query": state.get("flight_search_query") or state["user_query"],
+            "hotel_search_query": state.get("hotel_search_query") or f"best hotels in {state.get('destination', state['user_query'])}",
+            "llm_calls": 1
+        }
 
 def flight_agent(state: TravelState):
     """
@@ -306,7 +334,29 @@ def final_agent(state: TravelState):
     """
     try:
         if not state.get("is_travel_related", True):
-            return {} \n\n    final_prompt = f\"\"\"\n    Synthesizeify a y n t h n r e s p o n s e t h e u s e r ' s t r a v e l r q u e s t .\n\n    P r o p o s e d I t i n e r a r y :\n    \n    { s t a t e [ ' i t i n e r a r y ' ] }\n\n    P r o v i d e t h e f i n a l i z e d r e s p o n s e c o n t a i n i n g t h e i t i n e r a r y , f l i g h t d e t a i l s , a n d h o t e l s u g g e s t i o n s , w r a p p e d b e a u t i f u l l y .\n    \"\"\"\n    r e s p o n s e = l l m . i n v o k e ([ H u m a n M e s s a g e ( c o n t e n t = f i n a l _ p r o m p t )])\n\n    r e t u r n {\n        \" m e s s a g e s \" : [ r e s p o n s e ],\n        \" l l m _ c a l l s \" : 1\n    }\nexcept Exception as e:\n    logger.error(f`Error i n f i n a l _ a g e n t: { s t r ( e ) `})\n    r e t u r n {\n        \" m e s s a g e s \" : [ A I M e s s a g e ( c o n t e n t = \"[ F i n a l A g e n t ] U n a b l e t o g e n e r a t e f i n a l r e s p o n s e d u e t o t e c h n i c a l d i f f i c u l t i e s . \" )],\n        \" l l m _ c a l l s \" : 1\n    }
+            return {}
+
+        final_prompt = f"""
+        Synthesify a final response to the user's travel request.
+
+        Proposed Itinerary:
+
+        {state.get('itinerary', 'No itinerary generated')}
+
+        Provide the finalized response containing the itinerary, flight details, and hotel suggestions, wrapped beautifully.
+        """
+        response = llm.invoke([HumanMessage(content=final_prompt)])
+
+        return {
+            "messages": [response],
+            "llm_calls": 1
+        }
+    except Exception as e:
+        logger.error(f"Error in final_agent: {str(e)}")
+        return {
+            "messages": [AIMessage(content="[Final Agent] Unable to generate final response due to technical difficulties.")],
+            "llm_calls": 1
+        }
 
 # --- GRAPH BUILDER ---
 
