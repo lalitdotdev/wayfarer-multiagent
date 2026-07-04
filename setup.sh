@@ -1,7 +1,7 @@
 #!/bin/bash
-# Setup script for Wayfarer development environment
+# Wayfarer Multi-Agent Travel Concierge Setup Script
 
-echo "Setting up Wayfarer development environment..."
+echo "Setting up Wayfarer Multi-Agent Travel Concierge..."
 
 # Check if Python 3.8+ is available
 if ! command -v python3 &> /dev/null; then
@@ -36,7 +36,7 @@ source venv/bin/activate
 echo "Upgrading pip..."
 pip install --upgrade pip
 
-# Install dependencies
+# Install main dependencies
 echo "Installing dependencies..."
 pip install -r requirements.txt
 
@@ -49,18 +49,21 @@ fi
 # Install pre-commit hooks
 if [ -f ".pre-commit-config.yaml" ]; then
     echo "Installing pre-commit hooks..."
+    pip install pre-commit
     pre-commit install
 fi
 
-# Create .env file from example if it doesn't exist
-if [ ! -f ".env" ] && [ -f ".env.example" ]; then
-    echo "Creating .env file from .env.example..."
-    cp .env.example .env
-    echo "Please edit .env to add your API keys"
-elif [ ! -f ".env" ]; then
-    echo "Creating .env file..."
-    touch .env
-    echo "Please add your API keys to .env"
+# Create .env file if it doesn't exist
+if [ ! -f ".env" ]; then
+    echo "Creating .env template..."
+    cat > .env << EOF
+# Environment variables for Wayfarer Multi-Agent Travel Concierge
+DATABASE_URL=postgresql://user:password@localhost:5432/wayfarer
+GROQ_API_KEY=your_groq_api_key_here
+AVIATIONSTACK_API_KEY=your_aviationstack_api_key_here
+TAVILY_API_KEY=your_tavily_api_key_here
+EOF
+    echo "Please edit .env file with your actual API keys"
 fi
 
 # Create necessary directories
@@ -73,12 +76,9 @@ echo "To activate the virtual environment in the future, run:"
 echo "  source venv/bin/activate"
 echo ""
 echo "To run the application:"
-echo "  streamlit run app.py"
+echo "  wayfarer"
 echo ""
 echo "To run tests:"
 echo "  pytest"
-echo ""
-echo "To run tests with coverage:"
-echo "  pytest --cov=./"
 echo ""
 echo "Happy coding!"
