@@ -203,7 +203,8 @@ div[data-testid="stButton"]:has(button[kind="secondaryFormSubmit"]),
 
 /* ══════════════ route tracker (signature element) ══════════════ */
 .tracker{ margin:0.4rem 0 1.8rem; padding:1.4rem 1.6rem; background:var(--surface);
-  border:1px solid var(--border); border-radius:16px; }
+  border:1px solid var(--border); border-radius:16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
 .tracker-label{ font-family:var(--font-mono); font-size:0.72rem; letter-spacing:0.16em;
   text-transform:uppercase; color:var(--text-faint); margin-bottom:1.1rem; }
 .tracker-row{ display:flex; align-items:center; }
@@ -215,15 +216,74 @@ div[data-testid="stButton"]:has(button[kind="secondaryFormSubmit"]),
 }
 .tracker-node.done .ring{ border-color:var(--_c); color:#fff; background:var(--_c);
   box-shadow:0 0 16px var(--_c); animation:nodePop 0.5s ease; }
+.tracker-node.active .ring{ border-color:var(--_c); color:var(--_c); background:var(--bg-soft);
+  box-shadow:0 0 12px var(--_c); animation:pulseActive 1.5s infinite alternate; }
+@keyframes pulseActive {
+  0% { transform: scale(1); box-shadow: 0 0 8px var(--_c); }
+  100% { transform: scale(1.08); box-shadow: 0 0 20px var(--_c); }
+}
 @keyframes nodePop{ 0%{ transform:scale(0.6); opacity:0; } 60%{ transform:scale(1.12); } 100%{ transform:scale(1); opacity:1; } }
 .tracker-node .name{ font-size:0.68rem; color:var(--text-faint); text-align:center; font-weight:500; }
 .tracker-node.done .name{ color:var(--text-dim); }
+.tracker-node.active .name{ color:var(--text); font-weight:600; }
 .tracker-line{ flex:1; height:2px; background:var(--border); margin:0 -6px 26px; position:relative; overflow:hidden; }
 .tracker-line.done::after{
   content:""; position:absolute; inset:0; background:var(--_c); transform-origin:left;
   animation:fillLine 0.6s ease forwards;
 }
+.tracker-line.active::after{
+  content:""; position:absolute; inset:0; background:linear-gradient(90deg, var(--_c), transparent);
+  animation:pulseLine 1.5s infinite linear; transform-origin:left;
+}
 @keyframes fillLine{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
+@keyframes pulseLine {
+  0% { transform: scaleX(0); opacity: 0.3; }
+  50% { transform: scaleX(1); opacity: 0.8; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+/* ══════════════ custom loader ══════════════ */
+.loader-container {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  padding: 2.2rem 2rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  animation: cardIn 0.5s ease both;
+}
+.loader-container::before {
+  content: ""; position: absolute; top: 0; left: -100%; width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  animation: scanning 2.2s infinite linear;
+}
+@keyframes scanning {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+.loader-spinner {
+  width: 44px; height: 44px;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  margin: 0 auto 1.2rem;
+  animation: spin 1s infinite linear;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.loader-text {
+  font-family: var(--font-display);
+  font-size: 1.15rem; font-weight: 600; color: var(--text);
+  margin-bottom: 0.4rem;
+  display: flex; align-items: center; justify-content: center; gap: 0.6rem;
+}
+.loader-sub {
+  font-size: 0.86rem; color: var(--text-dim);
+}
 
 /* ══════════════ section headers ══════════════ */
 .sec-head{ display:flex; align-items:center; gap:0.65rem; margin:2.1rem 0 0.9rem; }
@@ -232,21 +292,22 @@ div[data-testid="stButton"]:has(button[kind="secondaryFormSubmit"]),
 
 /* ══════════════ agent result cards ══════════════ */
 .agent-card{
-  background:var(--surface); border:1px solid var(--border-soft); border-left:3px solid var(--_c);
-  border-radius:12px; padding:1.1rem 1.3rem 1.2rem; margin-bottom:0.85rem;
-  animation:cardIn 0.5s ease both;
+  background:var(--surface); border:1px solid var(--border-soft); border-left:4px solid var(--_c);
+  border-radius:14px; padding:1.2rem 1.4rem 1.3rem; margin-bottom:1rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  animation:cardIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-@keyframes cardIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
-.agent-card__head{ display:flex; align-items:center; gap:0.6rem; margin-bottom:0.6rem; }
-.agent-card__icon{ font-size:1.15rem; }
-.agent-card__label{ font-family:var(--font-display); font-weight:600; font-size:0.98rem; color:var(--text); flex:1; }
+@keyframes cardIn{ from{ opacity:0; transform:translateY(15px); } to{ opacity:1; transform:translateY(0); } }
+.agent-card__head{ display:flex; align-items:center; gap:0.6rem; margin-bottom:0.7rem; }
+.agent-card__icon{ font-size:1.25rem; }
+.agent-card__label{ font-family:var(--font-display); font-weight:600; font-size:1.02rem; color:var(--text); flex:1; }
 .agent-card__badge{ font-family:var(--font-mono); font-size:0.68rem; color:var(--_c); background:var(--_cd);
-  padding:0.18rem 0.55rem; border-radius:6px; letter-spacing:0.06em; }
-.agent-card__body{ color:#c7d6e8; font-size:0.92rem; line-height:1.68; }
-.agent-card__body p{ margin:0 0 0.55rem; }
-.agent-card__body ul{ margin:0 0 0.6rem; padding-left:1.15rem; }
-.agent-card__body li{ margin-bottom:0.3rem; }
-.agent-card__body h2,.agent-card__body h3,.agent-card__body h4{ font-family:var(--font-display); color:var(--text); margin:0.7rem 0 0.4rem; }
+  padding:0.2rem 0.6rem; border-radius:6px; letter-spacing:0.06em; font-weight: 600; }
+.agent-card__body{ color:#c7d6e8; font-size:0.94rem; line-height:1.72; }
+.agent-card__body p{ margin:0 0 0.6rem; }
+.agent-card__body ul{ margin:0 0 0.7rem; padding-left:1.25rem; }
+.agent-card__body li{ margin-bottom:0.35rem; }
+.agent-card__body h2,.agent-card__body h3,.agent-card__body h4{ font-family:var(--font-display); color:var(--text); margin:0.8rem 0 0.4rem; }
 .agent-card__body strong{ color:var(--text); }
 
 /* boarding lane state (before result arrives) */
@@ -261,35 +322,49 @@ div[data-testid="stButton"]:has(button[kind="secondaryFormSubmit"]),
 /* ══════════════ metrics ══════════════ */
 .metric-row{ display:flex; gap:1rem; margin:1.7rem 0; }
 .metric-box{ flex:1; background:var(--surface); border:1px solid var(--border-soft); border-radius:14px;
-  padding:1.1rem 1.2rem; text-align:center; }
+  padding:1.1rem 1.2rem; text-align:center; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
 .metric-val{ font-family:var(--font-display); font-size:1.9rem; font-weight:700; color:var(--blue); }
 .metric-lbl{ font-family:var(--font-mono); font-size:0.7rem; color:var(--text-faint); margin-top:0.25rem;
   text-transform:uppercase; letter-spacing:0.1em; }
 
 /* ══════════════ boarding pass — final ticket ══════════════ */
 .ticket{
-  position:relative; background:linear-gradient(155deg, #0d1a2b 0%, #0a1420 100%);
-  border:1px solid var(--border); border-radius:18px; padding:0; overflow:hidden;
-  box-shadow:0 20px 60px rgba(0,0,0,0.35);
+  position:relative; background:linear-gradient(155deg, #0e1e33 0%, #07101a 100%);
+  border:1px solid var(--border); border-radius:20px; padding:0; overflow:hidden;
+  box-shadow:0 24px 72px rgba(0,0,0,0.45);
 }
 .ticket-head{
-  display:flex; justify-content:space-between; align-items:center; padding:1.2rem 1.6rem;
-  background:linear-gradient(120deg, rgba(52,209,184,0.14), rgba(79,143,247,0.08));
+  display:flex; justify-content:space-between; align-items:center; padding:1.4rem 1.8rem;
+  background:linear-gradient(120deg, rgba(52,209,184,0.18), rgba(79,143,247,0.12));
 }
 .ticket-head .brand{ font-family:var(--font-display); font-weight:700; color:var(--text); letter-spacing:0.02em; }
 .ticket-head .brand span{ color:var(--teal); }
 .ticket-head .status{ font-family:var(--font-mono); font-size:0.72rem; color:var(--teal); letter-spacing:0.1em;
-  border:1px solid var(--teal-dim); background:var(--teal-dim); padding:0.28rem 0.7rem; border-radius:20px; }
-.ticket-perf{ position:relative; height:1px; background:repeating-linear-gradient(90deg, var(--border) 0 8px, transparent 8px 16px); margin:0 1.6rem; }
+  border:1px solid var(--teal-dim); background:var(--teal-dim); padding:0.28rem 0.7rem; border-radius:20px;
+  font-weight: 600; box-shadow: 0 0 10px rgba(52,209,184,0.2); }
+.ticket-meta {
+  display: flex; justify-content: space-between; padding: 1.1rem 1.8rem;
+  font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-dim);
+  border-bottom: 1px dashed var(--border); background: rgba(255,255,255,0.01);
+}
+.ticket-meta strong { color: var(--blue); }
+.ticket-perf{ position:relative; height:1px; background:repeating-linear-gradient(90deg, var(--border) 0 8px, transparent 8px 16px); margin:0 1.8rem; }
 .ticket-perf::before,.ticket-perf::after{
   content:""; position:absolute; top:-9px; width:18px; height:18px; border-radius:50%; background:var(--bg);
 }
-.ticket-perf::before{ left:-1.6rem; } .ticket-perf::after{ right:-1.6rem; }
-.ticket-body{ padding:1.5rem 1.7rem 1.8rem; color:#d3e0ef; font-size:0.96rem; line-height:1.75; }
-.ticket-body p{ margin:0 0 0.7rem; } .ticket-body ul{ padding-left:1.2rem; margin:0 0 0.7rem; }
-.ticket-body li{ margin-bottom:0.35rem; }
-.ticket-body h2,.ticket-body h3,.ticket-body h4{ font-family:var(--font-display); color:#fff; margin:0.9rem 0 0.5rem; }
+.ticket-perf::before{ left:-1.8rem; } .ticket-perf::after{ right:-1.8rem; }
+.ticket-body{ padding:1.6rem 2rem 2rem; color:#d3e0ef; font-size:0.98rem; line-height:1.78; }
+.ticket-body p{ margin:0 0 0.75rem; } .ticket-body ul{ padding-left:1.3rem; margin:0 0 0.8rem; }
+.ticket-body li{ margin-bottom:0.4rem; }
+.ticket-body h2,.ticket-body h3,.ticket-body h4{ font-family:var(--font-display); color:#fff; margin:1rem 0 0.5rem; }
 .ticket-body strong{ color:#fff; }
+.ticket-barcode {
+  display: flex; justify-content: center; align-items: center; gap: 2px;
+  padding: 1.6rem 0; background: rgba(255,255,255,0.015); border-top: 1px dashed var(--border);
+}
+.ticket-barcode span {
+  display: inline-block; height: 38px; background: var(--text-faint);
+}
 
 /* ══════════════ save bar ══════════════ */
 .save-bar{
@@ -493,17 +568,76 @@ COLOR_HEX = {"blue": "#4f8ff7", "amber": "#ffb454", "violet": "#b18cff", "teal":
 COLOR_DIM = {"blue": "#1c3357", "amber": "#4a3110", "violet": "#332a55", "teal": "#123832"}
 
 
+AGENT_LOADER_INFO = {
+    "flight_agent": ("✈️", "Flight Agent", "Scouting aviation networks & real-time flight fares..."),
+    "hotel_agent": ("🏨", "Hotel Agent", "Analyzing stay options, pricing, and guest reviews..."),
+    "itinerary_agent": ("🗺️", "Itinerary Agent", "Crafting a day-by-day travel map & logistics pipeline..."),
+    "final_agent": ("✦", "Final Concierge", "Stitching responses & issuing your digital boarding pass..."),
+}
+
+
+def render_loader(agent_key: str) -> str:
+    if agent_key not in AGENT_LOADER_INFO:
+        return ""
+    icon, name, desc = AGENT_LOADER_INFO[agent_key]
+    color = "blue"
+    for k, _, _, col in WAYPOINTS:
+        if k == agent_key:
+            color = col
+            break
+    c = COLOR_HEX[color]
+    return f"""
+    <div class="loader-container" style="border-top: 3px solid {c};">
+      <div class="loader-spinner" style="border-top-color: {c};"></div>
+      <div class="loader-text"><span>{icon}</span> {name} is processing...</div>
+      <div class="loader-sub">{desc}</div>
+    </div>
+    """
+
+
+def render_barcode() -> str:
+    import random
+    widths = [1, 2, 3, 4]
+    spans = []
+    # Generates a pseudo-barcode
+    random.seed(42)  # consistent barcode
+    for _ in range(40):
+        w = random.choice(widths)
+        op = random.choice([0.15, 0.45, 0.75])
+        spans.append(f'<span style="width:{w}px; opacity:{op};"></span>')
+    return f'<div class="ticket-barcode">{"".join(spans)}</div>'
+
+
 def render_tracker(done_keys: set) -> str:
     nodes_html = []
+    # Find the active node key (first waypoint not done)
+    active_key = None
+    for key, _, _, _ in WAYPOINTS:
+        if key not in done_keys:
+            active_key = key
+            break
+            
     for i, (key, icon, name, color) in enumerate(WAYPOINTS):
         is_done = key in done_keys
+        is_active = key == active_key and len(done_keys) < len(WAYPOINTS)
         c = COLOR_HEX[color]
+        
+        status_class = ""
+        if is_done:
+            status_class = "done"
+        elif is_active:
+            status_class = "active"
+            
         nodes_html.append(
-            f'<div class="tracker-node {"done" if is_done else ""}" style="--_c:{c}">'
+            f'<div class="tracker-node {status_class}" style="--_c:{c}">'
             f'<div class="ring">{icon}</div><div class="name">{name}</div></div>'
         )
         if i < len(WAYPOINTS) - 1:
-            nodes_html.append(f'<div class="tracker-line {"done" if is_done else ""}" style="--_c:{c}"></div>')
+            line_done = is_done
+            line_active = is_active and not (WAYPOINTS[i+1][0] in done_keys)
+            line_status = "done" if line_done else ("active" if line_active else "")
+            nodes_html.append(f'<div class="tracker-line {line_status}" style="--_c:{c}"></div>')
+            
     return (
         '<div class="tracker"><div class="tracker-label">Live agent route</div>'
         f'<div class="tracker-row">{"".join(nodes_html)}</div></div>'
@@ -612,10 +746,7 @@ if generate:
         tracker_slot.markdown(render_tracker(done_keys), unsafe_allow_html=True)
 
         boarding_slot = st.empty()
-        boarding_slot.markdown(
-            '<div class="boarding-line"><span class="plane-fly">✈</span> Checking your request and routing to the right agents…</div>',
-            unsafe_allow_html=True,
-        )
+        boarding_slot.markdown(render_loader("flight_agent"), unsafe_allow_html=True)
 
         is_chitchat = False
         step = 0
@@ -659,18 +790,21 @@ if generate:
                         collected["flight_results"] = text
                         done_keys.add("flight_agent")
                         st.markdown(render_agent_card("✈", "Flight Agent", "flights", "blue", text, step * 80), unsafe_allow_html=True)
+                        boarding_slot.markdown(render_loader("hotel_agent"), unsafe_allow_html=True)
 
                     elif node_name == "hotel_agent":
                         text = state_update.get("hotel_results", "")
                         collected["hotel_results"] = text
                         done_keys.add("hotel_agent")
                         st.markdown(render_agent_card("🏨", "Hotel Agent", "stays", "amber", text, step * 80), unsafe_allow_html=True)
+                        boarding_slot.markdown(render_loader("itinerary_agent"), unsafe_allow_html=True)
 
                     elif node_name == "itinerary_agent":
                         text = state_update.get("itinerary", "")
                         collected["itinerary"] = text
                         done_keys.add("itinerary_agent")
                         st.markdown(render_agent_card("🗺", "Itinerary Agent", "route", "violet", text, step * 80), unsafe_allow_html=True)
+                        boarding_slot.markdown(render_loader("final_agent"), unsafe_allow_html=True)
 
                     elif node_name == "final_agent":
                         msgs = state_update.get("messages", [])
@@ -704,29 +838,25 @@ if generate:
                         <div class="brand">✦ WAYFARER <span>· ITINERARY</span></div>
                         <div class="status">READY FOR DEPARTURE</div>
                       </div>
+                      <div class="ticket-meta">
+                        <div class="t-meta-col"><strong>PASSENGER:</strong> {thread_id}</div>
+                        <div class="t-meta-col"><strong>GATE:</strong> AGENT-04</div>
+                        <div class="t-meta-col"><strong>DATE:</strong> {datetime.now().strftime("%d %b %Y")}</div>
+                      </div>
                       <div class="ticket-perf"></div>
                       <div class="ticket-body">{md_to_html(collected['final_response'])}</div>
+                      {render_barcode()}
                     </div>
                     """, unsafe_allow_html=True)
                     st.balloons()
-        except Exception as e:
-            boarding_slot.empty()
-            error_msg = str(e)
-            if "API key" in error_msg or "authentication" in error_msg.lower():
-                st.error("API authentication failed. Please check your API keys in the .env file.")
-            elif "timeout" in error_msg.lower() or "connection" in error_msg.lower():
-                st.error("Network connection error. Please check your internet connection and try again.")
-            else:
-                st.error(f"An unexpected error occurred: {error_msg}")
-            st.info("💡 Troubleshooting tips:\n1. Verify your API keys are set correctly in .env\n2. Check your internet connection\n3. Try a simpler query to test the system\n4. Contact support if the issue persists")
 
-            # Save markdown + PDF to disk
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            md_filename = f"travel_plan_{timestamp}.md"
-            save_dir = os.path.join(os.path.dirname(__file__), "travel_plans")
-            os.makedirs(save_dir, exist_ok=True)
+                    # Save markdown + PDF to disk (Success Scenario)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    md_filename = f"travel_plan_{timestamp}.md"
+                    save_dir = os.path.join(os.path.dirname(__file__), "travel_plans")
+                    os.makedirs(save_dir, exist_ok=True)
 
-            file_content = f"""# Travel Plan
+                    file_content = f"""# Travel Plan
 **Query:** {user_query}
 **Generated:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 **User ID:** {thread_id}
@@ -754,21 +884,32 @@ if generate:
 ---
 *LLM Calls: {collected['llm_calls']}*
 """
-            with open(os.path.join(save_dir, md_filename), "w", encoding="utf-8") as f:
-                f.write(file_content)
+                    with open(os.path.join(save_dir, md_filename), "w", encoding="utf-8") as f:
+                        f.write(file_content)
 
-            pdf_filename = f"travel_plan_{timestamp}.pdf"
-            pdf_bytes = generate_travel_plan_pdf(user_query, thread_id, collected)
-            with open(os.path.join(save_dir, pdf_filename), "wb") as f:
-                f.write(pdf_bytes)
+                    pdf_filename = f"travel_plan_{timestamp}.pdf"
+                    pdf_bytes = generate_travel_plan_pdf(user_query, thread_id, collected)
+                    with open(os.path.join(save_dir, pdf_filename), "wb") as f:
+                        f.write(pdf_bytes)
 
-            dl_col1, dl_col2, info_col = st.columns([1, 1, 2])
-            with dl_col1:
-                st.download_button("⬇ Download Markdown", data=file_content, file_name=md_filename,
-                                    mime="text/markdown", use_container_width=True)
-            with dl_col2:
-                st.download_button("📄 Download PDF", data=pdf_bytes, file_name=pdf_filename,
-                                    mime="application/pdf", use_container_width=True)
-            with info_col:
-                st.markdown(f"<div class='save-bar'>📁 Auto-saved → <code>travel_plans/{pdf_filename}</code></div>",
-                            unsafe_allow_html=True)
+                    dl_col1, dl_col2, info_col = st.columns([1, 1, 2])
+                    with dl_col1:
+                        st.download_button("⬇ Download Markdown", data=file_content, file_name=md_filename,
+                                            mime="text/markdown", use_container_width=True)
+                    with dl_col2:
+                        st.download_button("📄 Download PDF", data=pdf_bytes, file_name=pdf_filename,
+                                            mime="application/pdf", use_container_width=True)
+                    with info_col:
+                        st.markdown(f"<div class='save-bar'>📁 Auto-saved → <code>travel_plans/{pdf_filename}</code></div>",
+                                    unsafe_allow_html=True)
+
+        except Exception as e:
+            boarding_slot.empty()
+            error_msg = str(e)
+            if "API key" in error_msg or "authentication" in error_msg.lower():
+                st.error("API authentication failed. Please check your API keys in the .env file.")
+            elif "timeout" in error_msg.lower() or "connection" in error_msg.lower():
+                st.error("Network connection error. Please check your internet connection and try again.")
+            else:
+                st.error(f"An unexpected error occurred: {error_msg}")
+            st.info("💡 Troubleshooting tips:\n1. Verify your API keys are set correctly in .env\n2. Check your internet connection\n3. Try a simpler query to test the system\n4. Contact support if the issue persists")
