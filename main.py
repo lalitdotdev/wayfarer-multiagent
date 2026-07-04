@@ -183,26 +183,33 @@ def flight_agent(state: TravelState):
     Note: this node calls an external flight-search tool, not the LLM,
     so it does not increment llm_calls.
     """
-    dest = state.get("destination", "unknown")
-    if dest == "unknown":
+    try:
+        dest = state.get("destination", "unknown")
+        if dest == "unknown":
+            return {
+                "flight_results": "Destination unknown. Skipping flight search.",
+                "messages": [AIMessage(content="[Flight Agent] No destination found to search flights.")]
+            }
+
+        query = state.get("flight_search_query", state["user_query"])
+        dep = state.get("dep_iata")
+        arr = state.get("arr_iata")
+
+        flight_data = search_flights(
+            query=query,
+            dep_iata=None if dep == "unknown" else dep,
+            arr_iata=None if arr == "unknown" else arr
+        )
         return {
-            "flight_results": "Destination unknown. Skipping flight search.",
-            "messages": [AIMessage(content="[Flight Agent] No destination found to search flights.")]
+            "flight_results": flight_data,
+            "messages": [AIMessage(content="[Flight Agent] Searched and fetched flight options.")]
         }
-
-    query = state.get("flight_search_query", state["user_query"])
-    dep = state.get("dep_iata")
-    arr = state.get("arr_iata")
-
-    flight_data = search_flights(
-        query=query,
-        dep_iata=None if dep == "unknown" else dep,
-        arr_iata=None if arr == "unknown" else arr
-    )
-    return {
-        "flight_results": flight_data,
-        "messages": [AIMessage(content="[Flight Agent] Searched and fetched flight options.")]
-    }
+    except Exception as e:
+        logger.error(f"Error in flight_agent: {str(e)}")
+        return {
+            "flight_results": f"Flight search unavailable: {str(e)}",
+            "messages": [AIMessage(content="[Flight Agent] Unable to fetch flight information at this time.")]
+        }
 
 def hotel_agent(state: TravelState):
     """
