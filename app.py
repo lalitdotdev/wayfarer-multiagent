@@ -711,8 +711,14 @@ if generate:
                     st.balloons()
         except Exception as e:
             boarding_slot.empty()
-            st.error(f"An error occurred while processing your request: {str(e)}")
-            st.info("Please try again with a different query or check your API connections.")
+            error_msg = str(e)
+            if "API key" in error_msg or "authentication" in error_msg.lower():
+                st.error("API authentication failed. Please check your API keys in the .env file.")
+            elif "timeout" in error_msg.lower() or "connection" in error_msg.lower():
+                st.error("Network connection error. Please check your internet connection and try again.")
+            else:
+                st.error(f"An unexpected error occurred: {error_msg}")
+            st.info("💡 Troubleshooting tips:\n1. Verify your API keys are set correctly in .env\n2. Check your internet connection\n3. Try a simpler query to test the system\n4. Contact support if the issue persists")
 
             # Save markdown + PDF to disk
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
