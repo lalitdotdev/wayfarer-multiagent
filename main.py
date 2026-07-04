@@ -217,19 +217,26 @@ def hotel_agent(state: TravelState):
     Note: this node calls an external search tool, not the LLM,
     so it does not increment llm_calls.
     """
-    dest = state.get("destination", "unknown")
-    if dest == "unknown":
-        return {
-            "hotel_results": "Destination unknown. Skipping hotel search.",
-            "messages": [AIMessage(content="[Hotel Agent] No destination found to search hotels.")]
-        }
+    try:
+        dest = state.get("destination", "unknown")
+        if dest == "unknown":
+            return {
+                "hotel_results": "Destination unknown. Skipping hotel search.",
+                "messages": [AIMessage(content="[Hotel Agent] No destination found to search hotels.")]
+            }
 
-    query = state.get("hotel_search_query", f"best hotels in {dest}")
-    hotel_data = tavily_search(query)
-    return {
-        "hotel_results": hotel_data,
-        "messages": [AIMessage(content="[Hotel Agent] Searched and fetched hotel options.")]
-    }
+        query = state.get("hotel_search_query", f"best hotels in {dest}")
+        hotel_data = tavily_search(query)
+        return {
+            "hotel_results": hotel_data,
+            "messages": [AIMessage(content="[Hotel Agent] Searched and fetched hotel options.")]
+        }
+    except Exception as e:
+        logger.error(f"Error in hotel_agent: {str(e)}")
+        return {
+            "hotel_results": f"Hotel search unavailable: {str(e)}",
+            "messages": [AIMessage(content="[Hotel Agent] Unable to fetch hotel information at this time.")]
+        }
 
 def itinerary_agent(state: TravelState):
     """
