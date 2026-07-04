@@ -82,3 +82,14 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+
+# Additional ignores
+.env.local
+.env.*.local
+.env.backup
+.mypy_cache/
+.dmypy.json
+dmypy.json
+*.sqlite3
+*.db
+logs/

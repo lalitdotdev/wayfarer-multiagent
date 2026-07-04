@@ -1,3 +1,48 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+setuptools.build_meta = "__legacy__"
+
+[project]
+name = "wayfarer"
+version = "0.1.0"
+description = "Multi-Agent Travel Concierge System"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Wayfarer Contributors"}
+]
+requires-python = ">=3.8"
+dependencies = [
+    "streamlit>=1.28.0",
+    "langchain>=0.1.0",
+    "langgraph>=0.0.20",
+    "groq>=0.4.0",
+    "tavily-python>=0.1.0",
+    "requests>=2.28.0",
+    "psycopg2-binary>=2.9.0",
+    "postgres-saver>=0.0.1",
+    "reportlab>=3.6.0",
+    "python-dotenv>=1.0.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/wayfarer"
+Documentation = "https://github.com/yourusername/wayfarer#readme"
+Repository = "https://github.com/yourusername/wayfarer.git"
+Issues = "https://github.com/yourusername/wayfarer/issues"
+
+[project.scripts]
+wayfarer = "app:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = [
+    "tests",
+    "tests.*",
+    "*.tests",
+    "*.tests.*"
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py"]
@@ -6,9 +51,42 @@ addopts = [
     "-v",
     "--strict-markers",
     "--disable-warnings",
+    "--cov=./",
+    "--cov-report=html",
+    "--cov-report=term-missing"
 ]
 markers = [
     "unit: marks unit tests",
     "integration: marks integration tests",
     "api: marks API-related tests",
+    "slow: marks slow tests"
 ]
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+    "E203",  # Whitespace before ':' ignored by black
+    "W503",  # Line break before binary operator ignored by black
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".venv",
+    "venv",
+    ".pytest_cache",
+    ".coverage",
+    "htmlcov"
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ["wayfarer", "app", "main", "tools", "tests"]
