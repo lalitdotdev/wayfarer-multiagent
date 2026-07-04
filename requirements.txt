@@ -1,5 +1,7 @@
 streamlit>=1.28.0
 langchain>=0.1.0
+langchain-core
+langchain-groq
 langgraph>=0.1.0
 langgraph-checkpoint-postgres
 groq>=0.4.0
