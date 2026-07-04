@@ -2,7 +2,7 @@
 Integration tests for the travel agent workflow
 """
 from unittest.mock import patch, MagicMock
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from main import app
 
 def test_travel_workflow_happy_path():
@@ -67,3 +67,58 @@ def test_travel_workflow_happy_path():
         assert mock_flights.called
         assert mock_hotels.called
         assert mock_llm.call_count == 4  # router, planner, itinerary, final
+
+def test_non_travel_workflow_chitchat():
+    """Test a non-travel workflow that goes through the chitchat agent"""
+    # Mock the external services (should not be called)
+    with patch('main.search_flights') as mock_flights, \
+         patch('main.tavily_search') as mock_hotels, \
+         patch('main.llm') as mock_llm:
+
+        # Mock LLM responses: router says OTHER, then chitchat agent responds
+        mock_llm_response_sequence = [
+            # Router agent: should say OTHER
+            MagicMock(content="OTHER"),
+            # Chitchat agent: generates a response
+            MagicMock(content="Hello! I'm Wayfarer, your travel concierge. How can I help you plan your next trip?")
+        ]
+        mock_llm.side_effect = mock_llm_response_sequence
+
+        # Initial state
+        inputs = {
+            "messages": [HumanMessage(content="Hi there!")],
+            "user_query": "Hi there!",
+            "destination": "unknown",
+            "departure_city": "unknown",
+            "dep_iata": "unknown",
+            "arr_iata": "unknown",
+            "flight_search_query": "",
+            "hotel_search_query": "",
+            "flight_results": "",
+            "hotel_results": "",
+            "itinerary": "",
+            "llm_calls": 0,
+            "is_travel_related": True  # Will be overwritten by router
+        }
+
+        # Configuration for the graph (using a fixed thread_id for testing)
+        config = {"configurable": {"thread_id": "test_session"}}
+
+        # Run the graph
+        result = app.invoke(inputs, config=config)
+
+        # Check that we got a response
+        assert "messages" in result
+        assert len(result["messages"]) > 0
+        # The last message should be from the agent (AIMessage)
+        last_message = result["messages"][-1]
+        assert last_message.type == "ai"
+        assert "Wayfarer" in last_message.content
+        assert "help you plan" in last_message.content
+
+        # Verify that the mocks were called appropriately
+        # Router agent called once, chitchat agent called once
+        assert mock_llm.call_count == 2
+        # Flight and hotel agents should not be called
+        assert not mock_flights.called
+        assert not mock_hotels.called
