@@ -4,6 +4,7 @@ import logging
 import requests
 from typing import Optional
 from dotenv import load_dotenv
+from ratelimit import limits, sleep_and_retry
 from tools.tavily_tool import tavily_search
 
 load_dotenv()
@@ -13,6 +14,10 @@ API_KEY = os.getenv("AVIATIONSTACK_API_KEY")
 # Set up logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Rate limiting: AviationStack allows 100 requests per minute on free tier
+# We'll be conservative and limit to 20 requests per minute
+ONE_MINUTE = 60
 
 def search_flights(query: str, dep_iata: Optional[str] = None, arr_iata: Optional[str] = None) -> str:
     """
@@ -42,7 +47,8 @@ def search_flights(query: str, dep_iata: Optional[str] = None, arr_iata: Optiona
 
             logger.info(f"Calling AviationStack API with params: {params}")
             # Added timeout and better error handling
-            response = requests.get(url, params=params, timeout=10)
+            # Apply rate limiting to the actual API call
+            response = _make_aviationstack_request_with_ratelimit(url, params, timeout=10)
             response.raise_for_status()  # Raises HTTPError for bad responses
 
             data = response.json()
@@ -109,3 +115,10 @@ def search_flights(query: str, dep_iata: Optional[str] = None, arr_iata: Optiona
 
     logger.warning("All flight search methods failed")
     return "Unable to retrieve flight information at this time. Please check your connection and try again later."
+
+
+@sleep_and_retry
+@limits(calls=20, period=ONE_MINUTE)
+def _make_aviationstack_request_with_ratelimit(url, params, timeout=10):
+    """Make a rate-limited request to AviationStack API"""
+    return requests.get(url, params=params, timeout=timeout)

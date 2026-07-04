@@ -3,7 +3,9 @@ Utility functions for Wayfarer travel concierge
 """
 import re
 import logging
-from typing import Dict, Optional, Tuple, List
+import html
+import os
+from typing import Dict, Optional, Tuple, List, Any
 from datetime import datetime, timedelta
 
 
@@ -278,3 +280,254 @@ def setup_logging(log_level: int = logging.INFO) -> logging.Logger:
         logger.addHandler(console_handler)
 
     return logger
+
+
+def sanitize_html(text: str) -> str:
+    """
+    Sanitize HTML content to prevent XSS attacks.
+
+    Args:
+        text: Input text that may contain HTML
+
+    Returns:
+        HTML-escaped string safe for display
+    """
+    if not text:
+        return ""
+    return html.escape(str(text))
+
+
+def sanitize_filename(filename: str) -> str:
+    """
+    Sanitize filename to be safe for filesystem usage.
+
+    Args:
+        filename: Original filename
+
+    Returns:
+        Sanitized filename safe for filesystem use
+    """
+    if not filename:
+        return "unnamed"
+
+    # Remove or replace unsafe characters
+    filename = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', filename)
+    # Remove leading/trailing spaces and dots
+    filename = filename.strip(' .')
+    # Limit length
+    if len(filename) > 255:
+        name, ext = os.path.splitext(filename)
+        filename = name[:255-len(ext)] + ext
+
+    return filename or "unnamed"
+
+
+def validate_email(email: str) -> bool:
+    """
+    Validate email address format.
+
+    Args:
+        email: Email address to validate
+
+    Returns:
+        True if email format is valid, False otherwise
+    """
+    if not email or not isinstance(email, str):
+        return False
+
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email.strip()))
+
+
+def sanitize_phone_number(phone: str) -> str:
+    """
+    Sanitize and format phone number.
+
+    Args:
+        phone: Phone number string
+
+    Returns:
+        Sanitized phone number with only digits and +
+    """
+    if not phone:
+        return ""
+
+    # Keep only digits, +, -, (, ), and spaces
+    cleaned = re.sub(r'[^\d+\-\(\)\s]', '', phone)
+    # Remove extra whitespace
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned
+
+
+def validate_currency_code(currency: str) -> bool:
+    """
+    Validate ISO 4217 currency code.
+
+    Args:
+        currency: Currency code to validate
+
+    Returns:
+        True if valid currency code, False otherwise
+    """
+    if not currency or not isinstance(currency, str):
+        return False
+
+    # ISO 4217 currency codes are 3 uppercase letters
+    return bool(re.fullmatch(r'[A-Z]{3}', currency.upper()))
+
+
+def format_phone_number(phone: str, country_code: str = "US") -> str:
+    """
+    Format phone number according to country conventions.
+
+    Args:
+        phone: Phone number to format
+        country_code: ISO country code (default: US)
+
+    Returns:
+        Formatted phone number string
+    """
+    if not phone:
+        return ""
+
+    # Extract digits only
+    digits = re.sub(r'\D', '', phone)
+
+    if country_code.upper() == "US" and len(digits) == 10:
+        # US format: (XXX) XXX-XXXX
+        return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
+    elif country_code.upper() == "IN" and len(digits) == 10:
+        # India format: +91 XXXXX-XXXXX
+        return f"+91 {digits[:5]}-{digits[5:]}"
+    else:
+        # Return as-is with country prefix if available
+        if not digits.startswith('1') and len(digits) == 10 and country_code.upper() == "US":
+            return f"+1 ({digits[:3]}) {digits[3:6]}-{digits[6:]}"
+        return phone
+
+
+def extract_names_from_text(text: str) -> List[str]:
+    """
+    Extract potential person names from text using basic heuristics.
+    Note: This is a simple implementation. For production, consider using NER libraries.
+
+    Args:
+        text: Input text to search for names
+
+    Returns:
+        List of potential names found
+    """
+    if not text:
+        return []
+
+    # Simple pattern for capitalized words that might be names
+    # This is a basic implementation - consider using spaCy or NLTK for production
+    pattern = r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b'
+    potential_names = re.findall(pattern, text)
+
+    # Filter out common non-name words
+    common_words = {
+        'The', 'This', 'That', 'And', 'Or', 'But', 'In', 'On', 'At', 'To', 'For',
+        'Of', 'With', 'By', 'From', 'Up', 'About', 'Into', 'Over', 'After',
+        'Before', 'Under', 'Above', 'Below', 'Between', 'Through', 'During',
+        'Before', 'After', 'Above', 'Below', 'Under', 'Over', 'Against',
+        'Between', 'Into', 'Through', 'Throughout', 'During', 'Throughout'
+    }
+
+    filtered_names = [name for name in potential_names
+                     if name not in common_words and len(name) > 1]
+
+    return filtered_names[:5]  # Limit to 5 names to avoid noise
+
+
+def is_travel_related_query(text: str) -> bool:
+    """
+    Heuristic to determine if a query is travel-related.
+
+    Args:
+        text: Input query text
+
+    Returns:
+        True if query appears to be travel-related, False otherwise
+    """
+    if not text:
+        return False
+
+    text_lower = text.lower()
+
+    # Travel-related keywords
+    travel_keywords = {
+        'flight', 'fly', 'airline', 'airport', 'hotel', 'stay', 'accommodation',
+        'vacation', 'trip', 'travel', 'journey', 'tour', 'destination', 'city',
+        'country', 'visit', 'destination', 'itinerary', 'passport', 'visa',
+        'luggage', 'baggage', 'passport', 'customs', 'immigration', 'resort',
+        'vacation', 'holiday', 'cruise', 'sailing', 'drive', 'road trip',
+        'backpacking', 'hiking', 'camping', 'safari', 'tourist', 'sightseeing',
+        'museum', 'beach', 'mountain', 'ski', 'resort', 'spa', 'restaurant',
+        'food', 'cuisine', 'local', 'guide', 'tour', 'excursion', 'ticket',
+        'booking', 'reservation', 'check-in', 'check-out', 'suite', 'room'
+    }
+
+    # Check if any travel keywords are present
+    words = set(re.findall(r'\b\w+\b', text_lower))
+    return bool(words & travel_keywords)
+
+
+class StructuredLogger:
+    """
+    Structured logger for adding contextual information to log entries.
+    """
+
+    def __init__(self, name: str = "wayfarer"):
+        self.logger = logging.getLogger(name)
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+            )
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+        self.logger.setLevel(logging.INFO)
+
+    def info(self, message: str, **kwargs):
+        """Log info message with structured context."""
+        if kwargs:
+            message = f"{message} | {self._format_context(kwargs)}"
+        self.logger.info(message)
+
+    def warning(self, message: str, **kwargs):
+        """Log warning message with structured context."""
+        if kwargs:
+            message = f"{message} | {self._format_context(kwargs)}"
+        self.logger.warning(message)
+
+    def error(self, message: str, **kwargs):
+        """Log error message with structured context."""
+        if kwargs:
+            message = f"{message} | {self._format_context(kwargs)}"
+        self.logger.error(message)
+
+    def debug(self, message: str, **kwargs):
+        """Log debug message with structured context."""
+        if kwargs:
+            message = f"{message} | {self._format_context(kwargs)}"
+        self.logger.debug(message)
+
+    def _format_context(self, context: Dict[str, Any]) -> str:
+        """Format context dictionary as a string."""
+        # Filter out None values and format as key=value pairs
+        filtered = {k: v for k, v in context.items() if v is not None}
+        return " ".join([f"{k}={v}" for k, v in filtered.items()])
+
+
+def get_structured_logger(name: str = "wayfarer") -> StructuredLogger:
+    """
+    Get a structured logger instance.
+
+    Args:
+        name: Logger name
+
+    Returns:
+        StructuredLogger instance
+    """
+    return StructuredLogger(name)

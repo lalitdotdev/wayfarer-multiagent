@@ -4,6 +4,8 @@ import logging
 from typing import Optional
 from dotenv import load_dotenv
 from tavily import TavilyClient
+from ratelimit import limits, sleep_and_retry
+import time
 
 load_dotenv()
 
@@ -12,6 +14,21 @@ _client: Optional[TavilyClient] = None
 # Set up logger
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Rate limiting: Tavily free tier allows 100 requests per month
+# We'll be conservative and limit to 3 requests per minute to be safe
+ONE_MINUTE = 60
+@sleep_and_retry
+@limits(calls=3, period=ONE_MINUTE)
+def rate_limited_tavily_search(query: str, max_results: int = 5):
+    """Rate-limited wrapper for Tavily search"""
+    client = get_client()
+    return client.search(
+        query=query.strip(),
+        max_results=max_results,
+        include_answer=True,  # Get AI-generated answer if available
+        include_raw_content=False  # We don't need raw content for our use case
+    )
 
 def get_client() -> TavilyClient:
     """Get or create the Tavily client instance."""
@@ -40,16 +57,10 @@ def tavily_search(query: str, max_results: int = 5) -> str:
         return "Please provide a valid search query."
 
     try:
-        client = get_client()
         logger.info(f"Executing Tavily search for query: '{query}' (max_results: {max_results})")
 
-        # Added timeout parameter if supported by the Tavily client
-        response = client.search(
-            query=query.strip(),
-            max_results=max_results,
-            include_answer=True,  # Get AI-generated answer if available
-            include_raw_content=False  # We don't need raw content for our use case
-        )
+        # Use rate-limited Tavily search
+        response = rate_limited_tavily_search(query, max_results)
 
         results = []
 

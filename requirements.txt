@@ -8,3 +8,4 @@ psycopg2-binary>=2.9.0
 postgres-saver>=0.0.1
 reportlab>=3.6.0
 python-dotenv>=1.0.0
+ratelimit>=2.2.1

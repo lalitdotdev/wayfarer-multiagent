@@ -44,6 +44,38 @@ def test_tavily_search_success(mock_get_client):
     assert "https://example.com/hotel" in result
 
 
+@patch('tools.tavily_tool.get_client')
+def test_tavily_search_no_api_key(mock_get_client):
+    """Test tavily_search handles missing API key"""
+    mock_get_client.side_effect = ValueError("TAVILY_API_KEY is not set in environment variables.")
+
+    result = tavily_search("test query")
+    assert "Search service is not properly configured" in result
+
+
+@patch('tools.tavily_tool.get_client')
+def test_tavily_search_rate_limit_error(mock_get_client):
+    """Test tavily_search handles rate limit error"""
+    mock_client = MagicMock()
+    mock_get_client.return_value = mock_client
+    # Simulate a rate limit error (e.g., HTTP 429)
+    mock_client.search.side_effect = Exception("429 Client Error: Too Many Requests for url: https://api.tivly.com/v2/search")
+
+    result = tavily_search("test query")
+    assert "Search service is currently experiencing high demand" in result
+
+
+@patch('tools.tavily_tool.get_client')
+def test_tavily_search_generic_error(mock_get_client):
+    """Test tavily_search handles generic error"""
+    mock_client = MagicMock()
+    mock_get_client.return_value = mock_client
+    mock_client.search.side_effect = Exception("Internal Server Error")
+
+    result = tavily_search("test query")
+    assert "Search service is temporarily unavailable" in result
+
+
 @patch('tools.flight_tool.requests.get')
 def test_search_flights_aviationstack_success(mock_get):
     """Test search_flights with successful AviationStack API response"""
@@ -88,6 +120,58 @@ def test_search_flights_aviationstack_failure(mock_get):
             result = search_flights("test flight", dep_iata="JFK", arr_iata="LAX")
             assert result == "Fallback flight results from Tavily"
             mock_tavily.assert_called_once()
+
+
+@patch('tools.flight_tool.requests.get')
+def test_search_flights_aviationstack_timeout(mock_get):
+    """Test search_flights falls back to Tavily when AviationStack times out"""
+    # Mock timeout
+    mock_get.side_effect = Exception("Timeout")
+
+    # Mock Tavily search fallback
+    with patch('tools.flight_tool.tavily_search') as mock_tavily:
+        mock_tavily.return_value = "Fallback flight results from Tavily"
+
+        with patch.dict(os.environ, {"AVIATIONSTACK_API_KEY": "test-key"}):
+            result = search_flights("test flight", dep_iata="JFK", arr_iata="LAX")
+            assert result == "Fallback flight results from Tavily"
+            mock_tavily.assert_called_once()
+
+
+@patch('tools.flight_tool.requests.get')
+def test_search_flights_aviationstack_invalid_json(mock_get):
+    """Test search_flights falls back to Tavily when AviationStack returns invalid JSON"""
+    # Mock response with invalid JSON
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.side_effect = ValueError("Invalid JSON")
+    mock_get.return_value = mock_response
+
+    # Mock Tavily search fallback
+    with patch('tools.flight_tool.tavily_search') as mock_tavily:
+        mock_tavily.return_value = "Fallback flight results from Tavily"
+
+        with patch.dict(os.environ, {"AVIATIONSTACK_API_KEY": "test-key"}):
+            result = search_flights("test flight", dep_iata="JFK", arr_iata="LAX")
+            assert result == "Fallback flight results from Tavily"
+            mock_tavily.assert_called_once()
+
+
+@patch('tools.flight_tool.requests.get')
+def test_search_flights_both_apis_fail(mock_get):
+    """Test search_returns error message when both APIs fail"""
+    # Mock failed API response
+    mock_response = MagicMock()
+    mock_response.status_code = 500
+    mock_get.return_value = mock_response
+
+    # Mock Tavily search to also fail
+    with patch('tools.flight_tool.tavily_search') as mock_tavily:
+        mock_tavily.return_value = "Error from Tavily"
+
+        with patch.dict(os.environ, {"AVIATIONSTACK_API_KEY": "test-key"}):
+            result = search_flights("test flight", dep_iata="JFK", arr_iata="LAX")
+            assert result == "Error from Tavily"
 
 
 @patch('tools.flight_tool.tavily_search')
