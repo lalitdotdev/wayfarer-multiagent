@@ -620,94 +620,99 @@ if generate:
         is_chitchat = False
         step = 0
 
-        for chunk in app.stream(
-            {
-                "messages": [HumanMessage(content=user_query)],
-                "user_query": user_query,
-                "flight_results": "",
-                "hotel_results": "",
-                "itinerary": "",
-                "llm_calls": 0,
-            },
-            config=config,
-            stream_mode="updates",
-        ):
-            for node_name, state_update in chunk.items():
-                if "llm_calls" in state_update:
-                    collected["llm_calls"] += state_update["llm_calls"]
+        try:
+            for chunk in app.stream(
+                {
+                    "messages": [HumanMessage(content=user_query)],
+                    "user_query": user_query,
+                    "flight_results": "",
+                    "hotel_results": "",
+                    "itinerary": "",
+                    "llm_calls": 0,
+                },
+                config=config,
+                stream_mode="updates",
+            ):
+                for node_name, state_update in chunk.items():
+                    if "llm_calls" in state_update:
+                        collected["llm_calls"] += state_update["llm_calls"]
 
-                if node_name == "router_agent":
-                    continue
+                    if node_name == "router_agent":
+                        continue
 
-                if node_name == "chitchat_agent":
-                    is_chitchat = True
+                    if node_name == "chitchat_agent":
+                        is_chitchat = True
+                        boarding_slot.empty()
+                        msgs = state_update.get("messages", [])
+                        text = msgs[-1].content if msgs else ""
+                        st.markdown(
+                            render_agent_card("💬", "Concierge", "chat", "blue", text, delay_ms=0),
+                            unsafe_allow_html=True,
+                        )
+                        continue
+
                     boarding_slot.empty()
-                    msgs = state_update.get("messages", [])
-                    text = msgs[-1].content if msgs else ""
-                    st.markdown(
-                        render_agent_card("💬", "Concierge", "chat", "blue", text, delay_ms=0),
-                        unsafe_allow_html=True,
-                    )
-                    continue
+                    step += 1
 
-                boarding_slot.empty()
-                step += 1
+                    if node_name == "flight_agent":
+                        text = state_update.get("flight_results", "")
+                        collected["flight_results"] = text
+                        done_keys.add("flight_agent")
+                        st.markdown(render_agent_card("✈", "Flight Agent", "flights", "blue", text, step * 80), unsafe_allow_html=True)
 
-                if node_name == "flight_agent":
-                    text = state_update.get("flight_results", "")
-                    collected["flight_results"] = text
-                    done_keys.add("flight_agent")
-                    st.markdown(render_agent_card("✈", "Flight Agent", "flights", "blue", text, step * 80), unsafe_allow_html=True)
+                    elif node_name == "hotel_agent":
+                        text = state_update.get("hotel_results", "")
+                        collected["hotel_results"] = text
+                        done_keys.add("hotel_agent")
+                        st.markdown(render_agent_card("🏨", "Hotel Agent", "stays", "amber", text, step * 80), unsafe_allow_html=True)
 
-                elif node_name == "hotel_agent":
-                    text = state_update.get("hotel_results", "")
-                    collected["hotel_results"] = text
-                    done_keys.add("hotel_agent")
-                    st.markdown(render_agent_card("🏨", "Hotel Agent", "stays", "amber", text, step * 80), unsafe_allow_html=True)
+                    elif node_name == "itinerary_agent":
+                        text = state_update.get("itinerary", "")
+                        collected["itinerary"] = text
+                        done_keys.add("itinerary_agent")
+                        st.markdown(render_agent_card("🗺", "Itinerary Agent", "route", "violet", text, step * 80), unsafe_allow_html=True)
 
-                elif node_name == "itinerary_agent":
-                    text = state_update.get("itinerary", "")
-                    collected["itinerary"] = text
-                    done_keys.add("itinerary_agent")
-                    st.markdown(render_agent_card("🗺", "Itinerary Agent", "route", "violet", text, step * 80), unsafe_allow_html=True)
+                    elif node_name == "final_agent":
+                        msgs = state_update.get("messages", [])
+                        text = msgs[-1].content if msgs else ""
+                        collected["final_response"] = text
+                        done_keys.add("final_agent")
 
-                elif node_name == "final_agent":
-                    msgs = state_update.get("messages", [])
-                    text = msgs[-1].content if msgs else ""
-                    collected["final_response"] = text
-                    done_keys.add("final_agent")
+                    tracker_slot.markdown(render_tracker(done_keys), unsafe_allow_html=True)
 
-                tracker_slot.markdown(render_tracker(done_keys), unsafe_allow_html=True)
+            boarding_slot.empty()
 
-        boarding_slot.empty()
-
-        if is_chitchat:
-            st.info("Ask me about flights, stays, or a full itinerary whenever you're ready to plan.")
-        else:
-            # Metrics
-            st.markdown(f"""
-            <div class="metric-row">
-                <div class="metric-box"><div class="metric-val">4</div><div class="metric-lbl">Agents run</div></div>
-                <div class="metric-box"><div class="metric-val">{collected['llm_calls']}</div><div class="metric-lbl">LLM calls</div></div>
-                <div class="metric-box"><div class="metric-val">✓</div><div class="metric-lbl">Status</div></div>
-            </div>
-            """, unsafe_allow_html=True)
-
-            # Boarding pass — final plan
-            if collected["final_response"]:
-                st.markdown('<div class="sec-head"><div class="bar"></div><span>Your boarding pass</span></div>',
-                            unsafe_allow_html=True)
+            if is_chitchat:
+                st.info("Ask me about flights, stays, or a full itinerary whenever you're ready to plan.")
+            else:
+                # Metrics
                 st.markdown(f"""
-                <div class="ticket">
-                  <div class="ticket-head">
-                    <div class="brand">✦ WAYFARER <span>· ITINERARY</span></div>
-                    <div class="status">READY FOR DEPARTURE</div>
-                  </div>
-                  <div class="ticket-perf"></div>
-                  <div class="ticket-body">{md_to_html(collected['final_response'])}</div>
+                <div class="metric-row">
+                    <div class="metric-box"><div class="metric-val">4</div><div class="metric-lbl">Agents run</div></div>
+                    <div class="metric-box"><div class="metric-val">{collected['llm_calls']}</div><div class="metric-lbl">LLM calls</div></div>
+                    <div class="metric-box"><div class="metric-val">✓</div><div class="metric-lbl">Status</div></div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.balloons()
+
+                # Boarding pass — final plan
+                if collected["final_response"]:
+                    st.markdown('<div class="sec-head"><div class="bar"></div><span>Your boarding pass</span></div>',
+                                unsafe_allow_html=True)
+                    st.markdown(f"""
+                    <div class="ticket">
+                      <div class="ticket-head">
+                        <div class="brand">✦ WAYFARER <span>· ITINERARY</span></div>
+                        <div class="status">READY FOR DEPARTURE</div>
+                      </div>
+                      <div class="ticket-perf"></div>
+                      <div class="ticket-body">{md_to_html(collected['final_response'])}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    st.balloons()
+        except Exception as e:
+            boarding_slot.empty()
+            st.error(f"An error occurred while processing your request: {str(e)}")
+            st.info("Please try again with a different query or check your API connections.")
 
             # Save markdown + PDF to disk
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
